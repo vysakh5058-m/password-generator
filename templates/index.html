@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <style>
+        body {
+            background-image: url('https://cdn.pixabay.com/photo/2019/03/03/14/38/hacker-4031973_1280.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #container {
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        #security-image {
+            max-width: 100px;
+            margin-bottom: 20px;
+        }
+
+        #copyBtn {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjOOzD2n-m6VOmufpj3yyBXRa-Fx94ljnZPQ&s" alt="Security Icon" id="security-image">
+        <h1>Password Generator Application</h1>
+        <form id="passwordForm" method="POST" onsubmit="return validateForm()">
+            <label for="passlen">Enter password length:</label>
+            <input type="text" id="passlen" name="passlen" value="{{ passlen }}">
+            <button type="submit">Generate Password</button>
+        </form>
+        <p id="notification" style="color: red;"></p>
+        {% if passstr %}
+            <h2>Generated Password:</h2>
+            <input type="text" id="passstr" value="{{ passstr }}" readonly>
+            <button id="copyBtn" onclick="copyPassword()">Copy</button>
+        {% endif %}
+    </div>
+
+    <script>
+        function validateForm() {
+            var passlen = document.getElementById("passlen").value.trim();
+
+            // Check if password length is empty or not an integer
+            if (passlen === "" || isNaN(parseInt(passlen))) {
+                document.getElementById("notification").innerText = "Please enter a valid integer for password length.";
+                return false;
+            }
+
+            // Convert password length to integer
+            passlen = parseInt(passlen);
+
+            // Check if password length is less than 8 or greater than 20
+            if (passlen < 8 || passlen > 20) {
+                document.getElementById("notification").innerText = "The password length must be between 8 and 20.";
+                return false;
+            }
+
+            // Clear notification if all validations pass
+            document.getElementById("notification").innerText = "";
+            return true;
+        }
+
+        function copyPassword() {
+            var passInput = document.getElementById("passstr");
+            passInput.select();
+            document.execCommand("copy");
+            alert("Password copied to clipboard: " + passInput.value);
+        }
+    </script>
+</body>
+</html>
