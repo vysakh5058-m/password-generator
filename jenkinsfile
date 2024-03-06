@@ -11,7 +11,7 @@ pipeline {
         stage('GIT CHECKOUT') {
           steps {
               git branch: "main",
-              credentialsId: 'password-generator-repo',
+              credentialsId: 'repo-credential',
               url: 'git@github.com:vysakh5058-m/password-generator.git'
           }
         }
