@@ -2,124 +2,64 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_REGISTRY = "docker.io" // Docker Hub registry
-        DOCKER_IMAGE_NAME = "vysm5058/audit" // Name of your Docker image
-        DOCKER_IMAGE_TAG = "latest" // Tag for your Docker image
-        DOCKER_USERNAME = "vysm5058"
-        DOCKER_PASSWORD = "Sunrise.1144"
+        DOCKER_IMAGE_NAME = 'vysm5058/password-generator'
+        DOCKERFILE_PATH = './Dockerfile'
+        registryCredential = 'dockerhub-login'
     }
     
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
+        stage('GIT CHECKOUT') {
+          steps {
+              git branch: "main",
+              credentialsId: 'password-generator-repo',
+              url: 'git@github.com:vysakh5058-m/password-generator.git'
+          }
         }
         
-        stage('Build') {
+        stage('CHECKING DOCKER') {
+            steps {
+                // Check Kubeaudit is available or not
+                sh 'docker version'
+               }
+        }
+        
+        stage('BUILDING DOCKER IMAGE') {
             steps {
                 script {
-                    // Build Docker image
-                    sh "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
+                // Build Docker image with Jenkins job number as tag
+                docker.build("${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}")
                 }
             }
         }
         
-        stage('Push') {
+        stage('Docker Login') {
             steps {
-                script {
-                    // Login to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
-                    }
-                    
-                    // Push Docker image
-                    sh "docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                // Use the withCredentials block to access Docker registry credentials securely
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    // Login to Docker registry
+                    sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
                 }
             }
+        }
+        
+        stage('PUSH TO DOCKER HUB') {
+            steps {
+                sh "docker push ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
+          }
+        }
+        
+        stage('DELETE LOCAL CREATED DOCKER IMAGE') {
+            steps {
+                sh "docker rmi -f ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
+          }
+        }
+    }
+        post {
+        success {
+            echo 'Build and Image push successfully.'
+        }
+        failure {
+            echo 'Build and Image push failed!'
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// pipeline {
-//   agent any
-//   environment {
-//     DOCKER_REGISTRY = ""
-//     K8S_NAMESPACE = "cicd-test"
-
-//   }
-  
-//   stages {
-//     stage('CodeGitcheckout') {
-//       steps {
-//         git credentialsId: '', url: 'https://github.com/vysakh5058-m/password-generator.git', branch: 'main'
-//       }
-//     }
-//     // stage('UnitTest') {
-//     //         steps {
-//     //             script {
-//     //                 sh "sudo docker pull python:3.9"
-//     //             }
-                
-//     //             sh '''
-//     //               sudo docker run --rm -v ${WORKSPACE}:/frontend -w /frontend python:3.9 bash -c "set -eEuo pipefail && pip install -r /frontend/frontend/requirements.txt && python -m pytest /frontend/frontend/testcases.py"
-
-//     //             '''
-//     //         }
-//     //     }
-//     stage('Capture Short SHA') {
-//       steps {
-//         script {
-//           def shortSha = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-//           env.SHORT_SHA = shortSha
-//         }
-//       }
-//     }
-    
-//     stage('Build') {
-//       steps {
-//         script {
-//           def imageName = "${env.DOCKER_REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.SHORT_SHA}"
-//           sh """
-//             echo \"${imageName}\"
-//             sudo docker build -t ${imageName} -f ./Dockerfile .
-//             sudo docker image inspect ${imageName} --format \"{{index .RepoTags 0}}@{{.Id}}\" > image-digest.txt
-//             cat image-digest.txt
-//           """
-//         }
-//       }
-//     }
-    
-//     stage('Push Image') {
-//       steps {
-//         script {
-//           def imageName = "${env.DOCKER_REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.SHORT_SHA}"
-//           def image = "${env.DOCKER_REGISTRY}/${env.DOCKER_IMAGE_NAME}"
-//           sh "sudo ${env.GCLOUD_PATH} auth configure-docker us-east4-docker.pkg.dev"
-//           sh "sudo docker push ${imageName}"
-//           def digest = sh(returnStdout: true, script: "${env.GCLOUD_PATH} container images describe ${imageName} --format='get(image_summary.digest)'").trim()
-//           echo "Digest: ${digest}"
-//           def Imagetosign = "${image}@${digest}"
-//           echo "Image to attest: ${Imagetosign}"
-//           env.IMAGE_TO_SIGN = Imagetosign
-//         }
-//       }
-//     }  
-    
-
-
-//   }
-// }
